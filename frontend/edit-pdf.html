@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN" :class="{ 'dark': localStorage.getItem('dark') === 'true' }">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>编辑 PDF - 叮当猫的口袋</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { colors: { brand: { 50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a8a' } } } }
+    }
+  </script>
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300 flex items-center justify-center">
+
+  <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 fixed top-0 left-0 right-0 z-50">
+    <div class="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-2 font-bold text-lg text-brand-600 dark:text-brand-400">
+        <span>📄</span><span>PDF 工具</span>
+      </a>
+      <button onclick="let d=localStorage.getItem('dark')==='true';localStorage.setItem('dark',!d);location.reload()"
+        class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+      </button>
+    </div>
+  </nav>
+
+  <div class="text-center px-6 pt-20">
+    <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-amber-50 dark:bg-amber-900/30 text-5xl mb-6 shadow-sm">🚧</div>
+    <h1 class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100 mb-3">编辑 PDF</h1>
+    <p class="text-gray-500 dark:text-gray-400 mb-8">删除、修改 PDF 中的文字内容</p>
+
+    <div class="bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-300 dark:border-amber-600 rounded-2xl p-8 max-w-md mx-auto">
+      <h2 class="text-lg font-bold text-amber-700 dark:text-amber-300 mb-3">🚧 功能开发中</h2>
+      <p class="text-amber-600 dark:text-amber-400 leading-relaxed text-sm">
+        此功能正在开发中，计划支持：<br/><br/>
+        • 删除 PDF 中的文字内容<br/>
+        • 在指定位置添加新文字<br/>
+        • 保留原文件排版不变<br/><br/>
+        敬请期待！
+      </p>
+    </div>
+
+    <a href="index.html" class="inline-block mt-8 text-sm text-brand-600 dark:text-brand-400 hover:underline">
+      ← 返回工具首页
+    </a>
+  </div>
+
+</body>
+</html>

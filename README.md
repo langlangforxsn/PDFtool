@@ -74,6 +74,7 @@
 | PDF 页面重排 | 拖拽调整页面顺序 | pypdf + 前端拖拽 |
 | PDF 添加页码 | 批量添加页码/页眉页脚 | reportlab + pypdf |
 | PDF 文字提取 | 提取 PDF 中的文字 | pdfplumber |
+| PDF 编辑 | 删除/修改 PDF 中的文字 | PyMuPDF | 🚧 开发中 |
 | PDF 表单填写 | 填写/提取表单数据 | pypdf |
 
 ---
