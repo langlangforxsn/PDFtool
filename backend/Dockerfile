@@ -25,5 +25,5 @@ RUN mkdir -p /tmp/pdf_tool_uploads
 # 暴露端口
 EXPOSE 10000
 
-# 启动命令
-CMD ["gunicorn", "--bind", "0.0.0.0:10000", "--timeout", "120", "--workers", "2", "app:app"]
+# 启动命令（PORT 由 Render 自动设置）
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-10000} --timeout 120 --workers 2 app:app"]

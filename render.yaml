@@ -2,8 +2,10 @@ services:
   - type: web
     name: pdf-tool-api
     runtime: docker
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    repo: https://github.com/langlangforxsn/PDFtool
+    branch: main
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
     plan: free
     envVars:
       - key: PYTHON_VERSION
