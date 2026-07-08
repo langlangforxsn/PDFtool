@@ -1,9 +1,6 @@
 FROM python:3.11-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libreoffice-writer \
-    libreoffice-calc \
-    libreoffice-impress \
     poppler-utils \
     ghostscript \
     && apt-get clean \
@@ -18,4 +15,4 @@ COPY . .
 
 RUN mkdir -p /tmp/pdf_tool_uploads
 
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-10000} --timeout 120 --workers 2 app:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:10000", "--timeout", "120", "app:app"]
