@@ -7,8 +7,11 @@ import tempfile
 from flask import Flask, request, jsonify, send_file, send_from_directory
 from flask_cors import CORS
 
-# 前端文件目录（开发时用，部署后前端由 Vercel 托管）
+# 前端文件目录（开发和生产均可用）
 FRONTEND_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "frontend")
+if not os.path.isdir(FRONTEND_DIR):
+    # Docker 中 frontend 在 /app/frontend/
+    FRONTEND_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "frontend")
 
 from utils.file_handler import save_upload, cleanup_task_dir, allowed_file, get_extension
 from utils.pdf_merger import merge_pdfs
