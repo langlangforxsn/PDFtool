@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN" x-data="imgToPdfApp()" :class="{ 'dark': localStorage.getItem('dark') === 'true' }">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>图片转 PDF - 叮当猫的口袋</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="stylesheet" href="css/style.css" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { colors: { brand: { 50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a8a' } } } }
+    }
+  </script>
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
+
+  <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
+    <div class="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-2 font-bold text-lg text-brand-600 dark:text-brand-400">
+        <span>📄</span><span>PDF 工具</span>
+      </a>
+      <button @click="localStorage.setItem('dark', localStorage.getItem('dark') === 'true' ? 'false' : 'true'); location.reload()"
+        class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+      </button>
+    </div>
+  </nav>
+
+  <main class="max-w-5xl mx-auto px-6 py-10">
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-sky-50 dark:bg-sky-900/30 text-4xl mb-4 shadow-sm">📸</div>
+      <h1 class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100">图片转 PDF</h1>
+      <p class="text-gray-500 dark:text-gray-400 mt-2">选择多张图片，拖拽排序后导出为 PDF</p>
+    </div>
+
+    <!-- 上传区域 -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 mb-6">
+      <label class="upload-zone rounded-xl p-8 text-center cursor-pointer block"
+             :class="{ 'drag-over': dragOver }"
+             @dragover.prevent="dragOver = true"
+             @dragleave.prevent="dragOver = false"
+             @drop.prevent="handleDrop($event)">
+        <input type="file" multiple accept=".png,.jpg,.jpeg,.bmp,.tiff,.tif" class="hidden" @change="handleFileSelect($event)" />
+        <div class="text-4xl mb-3">📁</div>
+        <p class="text-gray-600 dark:text-gray-300 font-medium">点击或拖拽上传图片文件</p>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">支持 PNG、JPG、BMP、TIFF</p>
+      </label>
+    </div>
+
+    <!-- 缩略图预览 + 拖拽排序 -->
+    <div x-show="previews.length > 0" x-cloak class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 mb-6">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <h3 class="font-semibold text-gray-800 dark:text-gray-100">
+          📸 图片预览（共 <span x-text="previews.length"></span> 张）
+        </h3>
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            <span>🔍</span>
+            <input type="range" x-model.number="thumbSize" min="1" max="10" step="1" class="w-24 accent-brand-600" />
+            <span x-text="(11 - thumbSize) + ' 列'"></span>
+          </div>
+          <button @click="reverse()" class="px-2.5 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-xs text-gray-600 dark:text-gray-300 transition-colors">反序</button>
+          <button @click="clearAll()" class="px-2.5 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-xs text-gray-600 dark:text-gray-300 transition-colors">清空</button>
+        </div>
+      </div>
+
+      <p class="text-xs text-gray-400 dark:text-gray-500 mb-4">
+        💡 使用上下箭头调整图片顺序 · 最终 PDF 页面按此排列
+      </p>
+
+      <!-- 缩略图网格 -->
+      <div class="space-y-3">
+        <template x-for="(item, index) in previews" :key="item.id">
+          <div class="flex items-stretch gap-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-600 group hover:border-brand-400 transition-colors">
+            <!-- 排序按钮区 -->
+            <div class="flex flex-col shrink-0 bg-gray-100 dark:bg-gray-700">
+              <button @click="moveUp(index)" :disabled="index === 0"
+                class="flex-1 px-2 flex items-center justify-center text-gray-400 hover:text-brand-600 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+                title="上移">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 15l7-7 7 7"/></svg>
+              </button>
+              <button @click="moveDown(index)" :disabled="index === previews.length - 1"
+                class="flex-1 px-2 flex items-center justify-center text-gray-400 hover:text-brand-600 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+                title="下移">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
+              </button>
+            </div>
+
+            <!-- 序号徽章 -->
+            <div class="flex items-center justify-center shrink-0 w-8">
+              <span class="w-6 h-6 rounded-full bg-brand-500 text-white text-xs font-bold flex items-center justify-center shadow"
+                    x-text="index + 1"></span>
+            </div>
+
+            <!-- 缩略图 -->
+            <img :src="item.dataUrl" :alt="item.name"
+                 class="w-20 h-20 object-cover shrink-0 rounded my-2" />
+
+            <!-- 文件名 -->
+            <div class="flex-1 flex items-center min-w-0 pr-2">
+              <p class="text-sm text-gray-700 dark:text-gray-200 truncate" x-text="item.name" :title="item.name"></p>
+            </div>
+
+            <!-- 删除按钮 -->
+            <button @click="removeFile(index)"
+              class="shrink-0 px-3 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-6">
+      <p class="text-sm text-blue-700 dark:text-blue-300">💡 <strong>提示：</strong>拖拽调整顺序，每张图片 = PDF 一页，页面大小与图片尺寸一致</p>
+    </div>
+
+    <div x-show="error" x-cloak class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6">
+      <p class="text-sm text-red-700 dark:text-red-300" x-text="error"></p>
+    </div>
+    <div x-show="success" x-cloak class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 mb-6">
+      <p class="text-sm text-green-700 dark:text-green-300">✅ 转换完成！文件已自动下载</p>
+    </div>
+
+    <div x-show="processing" x-cloak class="mb-6">
+      <div class="flex items-center justify-between text-sm text-gray-500 mb-2"><span>正在转换...</span><span x-text="progress + '%'"></span></div>
+      <div class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+        <div class="progress-bar h-full bg-gradient-to-r from-sky-500 to-blue-500 rounded-full" :style="{ width: progress + '%' }"></div>
+      </div>
+    </div>
+
+    <button @click="doConvert()" :disabled="previews.length === 0 || processing"
+      class="w-full btn-primary text-white font-semibold py-3.5 rounded-xl text-base">
+      <span x-show="!processing">📸 转换为 PDF（<span x-text="previews.length"></span> 页）</span>
+      <span x-show="processing" class="flex items-center justify-center gap-2">
+        <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+        处理中...
+      </span>
+    </button>
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    function imgToPdfApp() {
+      let _id = 0;
+      return {
+        previews: [],    // [{ id, file, dataUrl, name }]
+        processing: false,
+        progress: 0,
+        error: "",
+        success: false,
+        thumbSize: 4,
+        dragIndex: null,
+        maxSize: 50 * 1024 * 1024,
+
+        get hasFiles() { return this.previews.length > 0; },
+
+        handleFileSelect(e) { this.addFiles(Array.from(e.target.files)); e.target.value = ""; },
+        handleDrop(e) { this.dragOver = false; this.addFiles(Array.from(e.dataTransfer.files)); },
+
+        addFiles(newFiles) {
+          this.error = "";
+          this.success = false;
+          for (const file of newFiles) {
+            if (file.size > this.maxSize) {
+              this.error = `文件 ${file.name} 超过 50MB 限制`;
+              continue;
+            }
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+              this.previews.push({
+                id: ++_id,
+                file: file,
+                dataUrl: ev.target.result,
+                name: file.name
+              });
+            };
+            reader.readAsDataURL(file);
+          }
+        },
+
+        removeFile(index) {
+          this.previews.splice(index, 1);
+        },
+
+        clearAll() {
+          this.previews = [];
+          this.error = "";
+          this.success = false;
+        },
+
+        reverse() {
+          this.previews = [...this.previews].reverse();
+        },
+
+        moveUp(index) {
+          if (index > 0) {
+            const arr = this.previews;
+            [arr[index - 1], arr[index]] = [arr[index], arr[index - 1]];
+            this.previews = [...arr];
+          }
+        },
+
+        moveDown(index) {
+          if (index < this.previews.length - 1) {
+            const arr = this.previews;
+            [arr[index], arr[index + 1]] = [arr[index + 1], arr[index]];
+            this.previews = [...arr];
+          }
+        },
+
+        doConvert() {
+          if (this.previews.length === 0) { this.error = "请先选择图片"; return; }
+          const fd = new FormData();
+          this.previews.forEach(p => fd.append("files", p.file, p.name));
+          this.processRequest("/api/convert/image-to-pdf", fd, "images.pdf");
+        },
+
+        async processRequest(endpoint, formData, downloadName) {
+          this.processing = true; this.progress = 0; this.error = ""; this.success = false;
+          try {
+            await uploadAndProcess(endpoint, formData, downloadName, p => { this.progress = p; });
+            this.success = true;
+          } catch (e) { this.error = e.message; }
+          finally { this.processing = false; }
+        }
+      };
+    }
+  </script>
+</body>
+</html>

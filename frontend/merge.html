@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN" x-data="app()" :class="{ 'dark': localStorage.getItem('dark') === 'true' }">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>合并 PDF - 叮当猫的口袋</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="stylesheet" href="css/style.css" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { colors: { brand: { 50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a8a' } } } }
+    }
+  </script>
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
+
+  <!-- 导航 -->
+  <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
+    <div class="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-2 font-bold text-lg text-brand-600 dark:text-brand-400">
+        <span>📄</span><span>PDF 工具</span>
+      </a>
+      <button @click="localStorage.setItem('dark', localStorage.getItem('dark') === 'true' ? 'false' : 'true'); location.reload()"
+        class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+      </button>
+    </div>
+  </nav>
+
+  <main class="max-w-2xl mx-auto px-6 py-10">
+    <!-- 标题 -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-900/30 text-4xl mb-4 shadow-sm">🔗</div>
+      <h1 class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100">合并 PDF</h1>
+      <p class="text-gray-500 dark:text-gray-400 mt-2">将多个 PDF 文件合并为一个文件，拖拽可调整顺序</p>
+    </div>
+
+    <!-- 上传区域 -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 mb-6">
+      <label class="upload-zone rounded-xl p-8 text-center cursor-pointer block"
+             :class="{ 'drag-over': dragOver }"
+             @dragover.prevent="dragOver = true"
+             @dragleave.prevent="dragOver = false"
+             @drop.prevent="handleDrop($event)">
+        <input type="file" multiple accept=".pdf" class="hidden" @change="handleFileSelect($event)" />
+        <div class="text-4xl mb-3">📁</div>
+        <p class="text-gray-600 dark:text-gray-300 font-medium">点击或拖拽上传 PDF 文件</p>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">支持同时上传多个 PDF 文件</p>
+      </label>
+
+      <!-- 文件列表 -->
+      <div x-show="hasFiles" class="mt-4 space-y-2">
+        <template x-for="(file, index) in files" :key="index">
+          <div class="file-item flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="text-lg shrink-0">📄</span>
+              <div class="min-w-0">
+                <p class="text-sm font-medium text-gray-700 dark:text-gray-200 truncate" x-text="file.name"></p>
+                <p class="text-xs text-gray-400" x-text="formatSize(file.size)"></p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <!-- 上移 -->
+              <button x-show="index > 0" @click="files.splice(index - 1, 0, files.splice(index, 1)[0])"
+                class="p-1 text-gray-400 hover:text-brand-600 transition-colors" title="上移">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 15l7-7 7 7"/></svg>
+              </button>
+              <!-- 下移 -->
+              <button x-show="index < files.length - 1" @click="files.splice(index + 1, 0, files.splice(index, 1)[0])"
+                class="p-1 text-gray-400 hover:text-brand-600 transition-colors" title="下移">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
+              </button>
+              <!-- 删除 -->
+              <button @click="removeFile(index)" class="p-1 text-gray-400 hover:text-red-500 transition-colors" title="移除">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </div>
+        </template>
+
+        <div class="flex items-center justify-between pt-3">
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            共 <span x-text="files.length" class="font-semibold text-brand-600 dark:text-brand-400"></span> 个文件，
+            <span x-text="formatSize(totalSize)" class="font-semibold"></span>
+          </p>
+          <button @click="clearFiles()" class="text-sm text-gray-400 hover:text-red-500 transition-colors">清空</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 提示 -->
+    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-6">
+      <p class="text-sm text-blue-700 dark:text-blue-300">💡 <strong>提示：</strong>使用上下箭头调整文件顺序，合并后的 PDF 将按此顺序排列</p>
+    </div>
+
+    <!-- 错误 & 成功提示 -->
+    <div x-show="error" x-cloak class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6">
+      <p class="text-sm text-red-700 dark:text-red-300" x-text="error"></p>
+    </div>
+    <div x-show="success" x-cloak class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 mb-6">
+      <p class="text-sm text-green-700 dark:text-green-300">✅ 合并完成！文件已自动下载</p>
+    </div>
+
+    <!-- 处理进度 -->
+    <div x-show="processing" x-cloak class="mb-6">
+      <div class="flex items-center justify-between text-sm text-gray-500 mb-2">
+        <span>正在合并...</span>
+        <span x-text="progress + '%'"></span>
+      </div>
+      <div class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+        <div class="progress-bar h-full bg-gradient-to-r from-brand-500 to-indigo-500 rounded-full" :style="{ width: progress + '%' }"></div>
+      </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <button @click="mergeFiles()" :disabled="!hasFiles || processing"
+      class="w-full btn-primary text-white font-semibold py-3.5 rounded-xl text-base">
+      <span x-show="!processing">🔗 合并 PDF</span>
+      <span x-show="processing" class="flex items-center justify-center gap-2">
+        <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+        处理中...
+      </span>
+    </button>
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    function app() {
+      return uploadData({ multiFile: true, accept: '.pdf' }, {
+        mergeFiles() {
+          const formData = new FormData();
+          this.files.forEach(f => formData.append("files", f));
+          this.processRequest("/api/merge", formData, "merged.pdf");
+        }
+      });
+    }
+  </script>
+</body>
+</html>

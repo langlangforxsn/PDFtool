@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN" x-data="pageNumApp()" :class="{ 'dark': localStorage.getItem('dark') === 'true' }">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>添加页码 - 叮当猫的口袋</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="stylesheet" href="css/style.css" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { colors: { brand: { 50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a8a' } } } }
+    }
+  </script>
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
+
+  <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
+    <div class="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-2 font-bold text-lg text-brand-600 dark:text-brand-400">
+        <span>📄</span><span>PDF 工具</span>
+      </a>
+      <button @click="localStorage.setItem('dark', localStorage.getItem('dark') === 'true' ? 'false' : 'true'); location.reload()"
+        class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+      </button>
+    </div>
+  </nav>
+
+  <main class="max-w-5xl mx-auto px-6 py-10">
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-fuchsia-50 dark:bg-fuchsia-900/30 text-4xl mb-4 shadow-sm">#️⃣</div>
+      <h1 class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100">添加页码</h1>
+      <p class="text-gray-500 dark:text-gray-400 mt-2">为 PDF 每一页添加页码编号，调整参数后预览实时更新</p>
+    </div>
+
+    <!-- 上传 -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 mb-6">
+      <label class="upload-zone rounded-xl p-8 text-center cursor-pointer block"
+             :class="{ 'drag-over': dragOver }"
+             @dragover.prevent="dragOver = true"
+             @dragleave.prevent="dragOver = false"
+             @drop.prevent="handleDrop($event)">
+        <input type="file" accept=".pdf" class="hidden" @change="handleFileSelect($event)" />
+        <div class="text-4xl mb-3">📁</div>
+        <p class="text-gray-600 dark:text-gray-300 font-medium">点击或拖拽上传 PDF 文件</p>
+      </label>
+      <div x-show="hasFiles" class="mt-4">
+        <div class="file-item flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+          <div class="flex items-center gap-3">
+            <span class="text-lg">📄</span>
+            <div>
+              <p class="text-sm font-medium text-gray-700 dark:text-gray-200" x-text="files[0]?.name"></p>
+              <p class="text-xs text-gray-400">
+                <span x-show="!loading">共 <span x-text="previews.length" class="font-semibold"></span> 页</span>
+                <span x-show="loading" class="text-brand-600">正在加载...</span>
+              </p>
+            </div>
+          </div>
+          <button @click="clearAll()" class="p-1 text-gray-400 hover:text-red-500 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+      <div x-show="loading" x-cloak class="mt-4 text-center text-sm text-brand-600">
+        <svg class="animate-spin inline w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> 渲染预览...
+      </div>
+    </div>
+
+    <!-- 参数设置 -->
+    <div x-show="previews.length > 0 && !loading" x-cloak class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 mb-6">
+      <h3 class="font-semibold text-gray-800 dark:text-gray-100 mb-4">页码设置</h3>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">位置</label>
+          <select x-model="position" @change="redrawAll()"
+            class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-brand-500 outline-none">
+            <option value="bottom-center">底部居中</option>
+            <option value="bottom-right">底部靠右</option>
+            <option value="bottom-left">底部靠左</option>
+            <option value="top-center">顶部居中</option>
+            <option value="top-right">顶部靠右</option>
+            <option value="top-left">顶部靠左</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">字体大小: <span x-text="fontSize"></span></label>
+          <input type="range" x-model.number="fontSize" min="6" max="48" step="2" @input.debounce.100ms="redrawAll()" class="w-full accent-brand-600" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">颜色</label>
+          <input type="color" x-model="color" @input.debounce.200ms="redrawAll()" class="w-full h-[34px] px-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 cursor-pointer" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">起始页码: <span x-text="startNum"></span></label>
+          <input type="range" x-model.number="startNum" min="1" max="50" step="1" @input.debounce.100ms="redrawAll()" class="w-full accent-brand-600" />
+        </div>
+      </div>
+    </div>
+
+    <!-- 预览区域 -->
+    <div x-show="previews.length > 0 && !loading" x-cloak class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 mb-6">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <h3 class="font-semibold text-gray-800 dark:text-gray-100">
+          📑 页码预览（共 <span x-text="previews.length"></span> 页）
+        </h3>
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            <span>🔍</span>
+            <input type="range" x-model.number="thumbSize" min="1" max="10" step="1" class="w-24 accent-brand-600" />
+            <span x-text="(11 - thumbSize) + ' 列'"></span>
+          </div>
+        </div>
+      </div>
+
+      <p class="text-xs text-gray-400 dark:text-gray-500 mb-4">
+        💡 调整参数后预览实时更新 · 当前页码位置: <strong x-text="position" class="text-brand-500"></strong>
+      </p>
+
+      <div class="grid gap-3" :style="'grid-template-columns: repeat(' + (11 - thumbSize) + ', 1fr);'">
+        <template x-for="(p, index) in previews" :key="p.page">
+          <div class="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700">
+            <canvas :id="'pn-canvas-' + p.page" class="w-full h-auto"></canvas>
+            <div class="text-center py-1 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700">
+              第 <span x-text="p.page"></span> 页
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <div x-show="error" x-cloak class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6">
+      <p class="text-sm text-red-700 dark:text-red-300" x-text="error"></p>
+    </div>
+    <div x-show="success" x-cloak class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 mb-6">
+      <p class="text-sm text-green-700 dark:text-green-300">✅ 页码添加完成！文件已自动下载</p>
+    </div>
+
+    <div x-show="processing" x-cloak class="mb-6">
+      <div class="flex items-center justify-between text-sm text-gray-500 mb-2"><span>正在处理...</span><span x-text="progress + '%'"></span></div>
+      <div class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+        <div class="progress-bar h-full bg-gradient-to-r from-fuchsia-500 to-purple-500 rounded-full" :style="{ width: progress + '%' }"></div>
+      </div>
+    </div>
+
+    <button @click="doAddNumbers()" :disabled="previews.length === 0 || processing"
+      class="w-full btn-primary text-white font-semibold py-3.5 rounded-xl text-base">
+      <span x-show="!processing">#️⃣ 添加页码</span>
+      <span x-show="processing" class="flex items-center justify-center gap-2">
+        <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+        处理中...
+      </span>
+    </button>
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    function pageNumApp() {
+      return {
+        files: [], processing: false, progress: 0, error: "", success: false,
+        maxSize: 50 * 1024 * 1024, previews: [], loading: false, thumbSize: 4,
+        position: 'bottom-center', fontSize: 14, color: '#000000', startNum: 1,
+
+        get hasFiles() { return this.files.length > 0; },
+
+        handleFileSelect(e) { this.setFile(e.target.files); e.target.value = ""; },
+        handleDrop(e) { this.dragOver = false; this.setFile(e.dataTransfer.files); },
+
+        setFile(fileList) {
+          const f = fileList[0];
+          if (!f || f.size > this.maxSize) return;
+          this.files = [f];
+          this.loading = true;
+          this.previews = [];
+          const fd = new FormData();
+          fd.append("file", f);
+          fetch("/api/preview", { method: "POST", body: fd })
+            .then(r => r.json())
+            .then(data => {
+              this.previews = data.previews;
+              this.loading = false;
+              this.$nextTick(() => this.redrawAll());
+            })
+            .catch(e => { this.error = e.message; this.loading = false; });
+        },
+
+        redrawAll() {
+          this.$nextTick(() => {
+            this.previews.forEach((p, idx) => this.drawPreview(p, idx));
+          });
+        },
+
+        drawPreview(p, idx) {
+          const canvas = document.getElementById('pn-canvas-' + p.page);
+          if (!canvas) return;
+          const img = new Image();
+          img.onload = () => {
+            const cw = img.width, ch = img.height;
+            canvas.width = cw;
+            canvas.height = ch;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+
+            // 在画布上绘制页码
+            const numStr = String(idx + this.startNum);
+            ctx.font = `bold ${this.fontSize * 2}px sans-serif`;
+            ctx.fillStyle = this.color;
+            ctx.textBaseline = 'bottom';
+            const margin = 40;
+
+            if (this.position === 'bottom-center') {
+              ctx.textAlign = 'center';
+              ctx.fillText(numStr, cw / 2, ch - margin);
+            } else if (this.position === 'bottom-right') {
+              ctx.textAlign = 'right';
+              ctx.fillText(numStr, cw - margin, ch - margin);
+            } else if (this.position === 'bottom-left') {
+              ctx.textAlign = 'left';
+              ctx.fillText(numStr, margin, ch - margin);
+            } else if (this.position === 'top-center') {
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'top';
+              ctx.fillText(numStr, cw / 2, margin);
+            } else if (this.position === 'top-right') {
+              ctx.textAlign = 'right';
+              ctx.textBaseline = 'top';
+              ctx.fillText(numStr, cw - margin, margin);
+            } else if (this.position === 'top-left') {
+              ctx.textAlign = 'left';
+              ctx.textBaseline = 'top';
+              ctx.fillText(numStr, margin, margin);
+            }
+          };
+          img.src = p.data_url;
+        },
+
+        clearAll() {
+          this.files = []; this.previews = []; this.loading = false;
+        },
+        clearFiles() { this.clearAll(); },
+        removeFile(i) { this.files.splice(i, 1); },
+
+        doAddNumbers() {
+          const fd = new FormData();
+          fd.append("file", this.files[0]);
+          fd.append("position", this.position);
+          fd.append("font_size", this.fontSize);
+          this.processRequest("/api/add-page-numbers", fd, "numbered.pdf");
+        },
+
+        async processRequest(endpoint, formData, downloadName) {
+          this.processing = true; this.progress = 0; this.error = ""; this.success = false;
+          try {
+            await uploadAndProcess(endpoint, formData, downloadName, p => { this.progress = p; });
+            this.success = true;
+          } catch (e) { this.error = e.message; }
+          finally { this.processing = false; }
+        }
+      };
+    }
+  </script>
+</body>
+</html>

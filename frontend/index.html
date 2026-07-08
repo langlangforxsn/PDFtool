@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN" x-data="app()" :class="{ 'dark': dark }">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF 工具 - 叮当猫的口袋</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="stylesheet" href="css/style.css" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd',
+              400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8',
+              800: '#1e40af', 900: '#1e3a8a',
+            },
+          }
+        }
+      }
+    }
+  </script>
+</head>
+
+<body class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300 overflow-x-hidden">
+
+  <!-- ============================================================ -->
+  <!--  导航栏                                                        -->
+  <!-- ============================================================ -->
+  <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
+    <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-2 font-bold text-lg text-brand-600 dark:text-brand-400">
+        <span class="text-xl">📄</span>
+        <span>PDF 工具</span>
+      </a>
+      <div class="flex items-center gap-4">
+        <a href="#" class="text-sm text-gray-500 dark:text-gray-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors">
+          使用帮助
+        </a>
+        <button @click="dark = !dark"
+          class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          title="切换深色模式">
+          <template x-if="!dark">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+            </svg>
+          </template>
+          <template x-if="dark">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+          </template>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ============================================================ -->
+  <!--  Hero                                                          -->
+  <!-- ============================================================ -->
+  <header class="relative overflow-hidden bg-gradient-to-br from-brand-600 via-blue-500 to-indigo-600
+                 dark:from-brand-800 dark:via-blue-700 dark:to-indigo-800">
+    <div class="absolute inset-0 dot-grid opacity-40"></div>
+    <div class="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-white/10 blur-3xl"></div>
+    <div class="absolute -bottom-20 -left-20 w-72 h-72 rounded-full bg-indigo-400/20 blur-3xl"></div>
+
+    <div class="max-w-6xl mx-auto px-6 py-12 md:py-16 relative">
+      <h1 class="text-3xl md:text-4xl font-extrabold text-white tracking-tight flex items-center gap-3">
+        <span class="inline-block text-4xl md:text-5xl drop-shadow-lg">📄</span>
+        <span>在线 PDF 工具</span>
+      </h1>
+      <p class="text-blue-100 mt-3 text-base md:text-lg max-w-xl leading-relaxed">
+        免费、安全、即开即用的 PDF 处理工具集 — 合并、拆分、转换、压缩一站搞定
+      </p>
+      <div class="flex flex-wrap gap-2 mt-4">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/15 text-white backdrop-blur-sm">⚡ 无需安装</span>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/15 text-white backdrop-blur-sm">🔒 文件安全</span>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/15 text-white backdrop-blur-sm">📱 移动适配</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================================================ -->
+  <!--  主内容：功能卡片                                               -->
+  <!-- ============================================================ -->
+  <main class="max-w-6xl mx-auto px-6 py-12 md:py-16">
+
+    <!-- ---- 合并 & 拆分 ---- -->
+    <section class="mb-12">
+      <h2 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-6 flex items-center gap-2">
+        <span>📋</span> 页面操作
+      </h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+
+        <!-- 合并 PDF -->
+        <a href="merge.html" class="tool-card card-animate block bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden group">
+          <div class="h-1.5 bg-gradient-to-r from-blue-500 to-cyan-400"></div>
+          <div class="p-5">
+            <div class="card-icon w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center mb-3 text-2xl shadow-sm">🔗</div>
+            <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 mb-1 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">合并 PDF</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">多个 PDF 合并为一个文件</p>
+          </div>
+        </a>
+
+        <!-- 拆分 PDF -->
+        <a href="split.html" class="tool-card card-animate block bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden group">
+          <div class="h-1.5 bg-gradient-to-r from-violet-500 to-purple-400"></div>
+          <div class="p-5">
+            <div class="card-icon w-11 h-11 rounded-xl bg-violet-50 dark:bg-violet-900/30 flex items-center justify-center mb-3 text-2xl shadow-sm">✂️</div>
+            <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 mb-1 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">拆分 PDF</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">按页码范围拆分 PDF 文件</p>
+          </div>
+        </a>
+
+        <!-- 删除页面 -->
+        <a href="delete-pages.html" class="tool-card card-animate block bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden group">
+          <div class="h-1.5 bg-gradient-to-r from-red-500 to-orange-400"></div>
+          <div class="p-5">
+            <div class="card-icon w-11 h-11 rounded-xl bg-red-50 dark:bg-red-900/30 flex items-center justify-center mb-3 text-2xl shadow-sm">🗑️</div>
+            <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 mb-1 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">删除页面</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">移除不需要的页面</p>
+          </div>
+        </a>
+
+        <!-- 旋转页面 -->
+        <a href="rotate.html" class="tool-card card-animate block bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden group">
+          <div class="h-1.5 bg-gradient-to-r from-emerald-500 to-teal-400"></div>
+          <div class="p-5">
+            <div class="card-icon w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center mb-3 text-2xl shadow-sm">🔄</div>
+            <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 mb-1 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">旋转页面</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">旋转 PDF 页面方向</p>
+          </div>
+        </a>
+
+      </div>
+    </section>
+
+    <!-- ---- 转换 ---- -->
+    <section class="mb-12">
+      <h2 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-6 flex items-center gap-2">
+        <span>🔀</span> 格式转换
+      </h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+
+        <!-- PDF 转图片 -->
+        <a href="pdf-to-image.html" class="tool-card card-animate block bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden group">
+          <div class="h-1.5 bg-gradient-to-r from-amber-500 to-yellow-400"></div>
+          <div class="p-5">
+            <div class="card-icon w-11 h-11 rounded-xl bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center mb-3 text-2xl shadow-sm">🖼️</div>
+            <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 mb-1 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">PDF 转图片</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">将 PDF 页面导出为 PNG/JPG</p>
+          </div>
+        </a>
+
+        <!-- 图片转 PDF -->
+        <a href="image-to-pdf.html" class="tool-card card-animate block bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden group">
+          <div class="h-1.5 bg-gradient-to-r from-sky-500 to-blue-400"></div>
+          <div class="p-5">
+            <div class="card-icon w-11 h-11 rounded-xl bg-sky-50 dark:bg-sky-900/30 flex items-center justify-center mb-3 text-2xl shadow-sm">📸</div>
+            <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 mb-1 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">图片转 PDF</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">多张图片合并为 PDF</p>
+          </div>
+        </a>
+
+        <!-- Office 转 PDF -->
+        <a href="office-to-pdf.html" class="tool-card card-animate block bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden group">
+          <div class="h-1.5 bg-gradient-to-r from-indigo-500 to-blue-400"></div>
+          <div class="p-5">
+            <div class="card-icon w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center mb-3 text-2xl shadow-sm">📝</div>
+            <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">Office 转 PDF</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Word/Excel/PPT 转 PDF</p>
+          </div>
+        </a>
+
+        <!-- PDF 转 Word -->
+        <a href="pdf-to-word.html" class="tool-card card-animate block bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden group">
+          <div class="h-1.5 bg-gradient-to-r from-teal-500 to-green-400"></div>
+          <div class="p-5">
+            <div class="card-icon w-11 h-11 rounded-xl bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center mb-3 text-2xl shadow-sm">📃</div>
+            <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 mb-1 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">PDF 转 Word</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">PDF 转为可编辑 Word 文档</p>
+          </div>
+        </a>
+
+      </div>
+    </section>
+
+    <!-- ---- 安全 & 优化 ---- -->
+    <section class="mb-12">
+      <h2 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-6 flex items-center gap-2">
+        <span>🛡️</span> 安全与优化
+      </h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+
+        <!-- PDF 压缩 -->
+        <a href="compress.html" class="tool-card card-animate block bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden group">
+          <div class="h-1.5 bg-gradient-to-r from-pink-500 to-rose-400"></div>
+          <div class="p-5">
+            <div class="card-icon w-11 h-11 rounded-xl bg-pink-50 dark:bg-pink-900/30 flex items-center justify-center mb-3 text-2xl shadow-sm">📦</div>
+            <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 mb-1 group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors">PDF 压缩</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">减小 PDF 文件体积</p>
+          </div>
+        </a>
+
+        <!-- 水印 -->
+        <a href="watermark.html" class="tool-card card-animate block bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden group">
+          <div class="h-1.5 bg-gradient-to-r from-lime-500 to-green-400"></div>
+          <div class="p-5">
+            <div class="card-icon w-11 h-11 rounded-xl bg-lime-50 dark:bg-lime-900/30 flex items-center justify-center mb-3 text-2xl shadow-sm">💧</div>
+            <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 mb-1 group-hover:text-lime-600 dark:group-hover:text-lime-400 transition-colors">添加水印</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">文字或图片水印</p>
+          </div>
+        </a>
+
+        <!-- 加密 -->
+        <a href="encrypt.html" class="tool-card card-animate block bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden group">
+          <div class="h-1.5 bg-gradient-to-r from-slate-500 to-gray-400"></div>
+          <div class="p-5">
+            <div class="card-icon w-11 h-11 rounded-xl bg-slate-50 dark:bg-slate-900/30 flex items-center justify-center mb-3 text-2xl shadow-sm">🔐</div>
+            <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 mb-1 group-hover:text-slate-600 dark:group-hover:text-slate-400 transition-colors">PDF 加密</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">设置密码保护 PDF</p>
+          </div>
+        </a>
+
+        <!-- 添加页码 -->
+        <a href="page-numbers.html" class="tool-card card-animate block bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden group">
+          <div class="h-1.5 bg-gradient-to-r from-fuchsia-500 to-purple-400"></div>
+          <div class="p-5">
+            <div class="card-icon w-11 h-11 rounded-xl bg-fuchsia-50 dark:bg-fuchsia-900/30 flex items-center justify-center mb-3 text-2xl shadow-sm">#️⃣</div>
+            <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 mb-1 group-hover:text-fuchsia-600 dark:group-hover:text-fuchsia-400 transition-colors">添加页码</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">为 PDF 批量添加页码</p>
+          </div>
+        </a>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================================================ -->
+  <!--  Footer                                                        -->
+  <!-- ============================================================ -->
+  <footer class="border-t border-gray-200 dark:border-gray-800">
+    <div class="max-w-6xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-400 dark:text-gray-500">
+      <p>© 2026 叮当猫的口袋 · PDF 工具</p>
+      <a href="#" class="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">← 返回首页</a>
+    </div>
+  </footer>
+
+  <!-- ============================================================ -->
+  <!--  JS                                                            -->
+  <!-- ============================================================ -->
+  <script src="js/app.js"></script>
+  <script>
+  function app() {
+    return {
+      dark: localStorage.getItem('dark') === 'true',
+      init() {
+        this.$watch('dark', v => localStorage.setItem('dark', v));
+      }
+    };
+  }
+  </script>
+</body>
+</html>

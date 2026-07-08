@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-CN" x-data="watermarkApp()" :class="{ 'dark': localStorage.getItem('dark') === 'true' }">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>添加水印 - 叮当猫的口袋</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="stylesheet" href="css/style.css" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { colors: { brand: { 50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a8a' } } } }
+    }
+  </script>
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
+
+  <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
+    <div class="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-2 font-bold text-lg text-brand-600 dark:text-brand-400">
+        <span>📄</span><span>PDF 工具</span>
+      </a>
+      <button @click="localStorage.setItem('dark', localStorage.getItem('dark') === 'true' ? 'false' : 'true'); location.reload()"
+        class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+      </button>
+    </div>
+  </nav>
+
+  <main class="max-w-5xl mx-auto px-6 py-10">
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-lime-50 dark:bg-lime-900/30 text-4xl mb-4 shadow-sm">💧</div>
+      <h1 class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100">添加水印</h1>
+      <p class="text-gray-500 dark:text-gray-400 mt-2">调整参数后在缩略图上实时预览水印效果</p>
+    </div>
+
+    <!-- 上传 PDF -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 mb-6">
+      <label class="upload-zone rounded-xl p-8 text-center cursor-pointer block"
+             :class="{ 'drag-over': dragOver }"
+             @dragover.prevent="dragOver = true"
+             @dragleave.prevent="dragOver = false"
+             @drop.prevent="handleDrop($event)">
+        <input type="file" accept=".pdf" class="hidden" @change="handleFileSelect($event)" />
+        <div class="text-4xl mb-3">📁</div>
+        <p class="text-gray-600 dark:text-gray-300 font-medium">点击或拖拽上传 PDF 文件</p>
+      </label>
+      <div x-show="hasFiles" class="mt-4">
+        <div class="file-item flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+          <div class="flex items-center gap-3">
+            <span class="text-lg">📄</span>
+            <div>
+              <p class="text-sm font-medium text-gray-700 dark:text-gray-200" x-text="files[0]?.name"></p>
+              <p class="text-xs text-gray-400">
+                <span x-show="!loadingPreview">共 <span x-text="previews.length" class="font-semibold"></span> 页</span>
+                <span x-show="loadingPreview" class="text-brand-600">正在生成预览...</span>
+              </p>
+            </div>
+          </div>
+          <button @click="clearAll()" class="p-1 text-gray-400 hover:text-red-500 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+      <div x-show="loadingPreview" x-cloak class="mt-4 text-center">
+        <svg class="animate-spin inline w-5 h-5 text-brand-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+        <span class="text-sm text-brand-600 ml-2">正在渲染预览...</span>
+      </div>
+    </div>
+
+    <!-- 水印选项 -->
+    <div x-show="previews.length > 0 && !loadingPreview" x-cloak class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 mb-6">
+      <h3 class="font-semibold text-gray-800 dark:text-gray-100 mb-4">水印设置</h3>
+
+      <div class="flex gap-3 mb-5">
+        <button @click="type = 'text'; redrawAll()"
+          class="flex-1 py-2.5 rounded-xl text-sm font-medium border transition-colors"
+          :class="type === 'text' ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'">
+          📝 文字水印
+        </button>
+        <button @click="type = 'image'; redrawAll()"
+          class="flex-1 py-2.5 rounded-xl text-sm font-medium border transition-colors"
+          :class="type === 'image' ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'">
+          🖼️ 图片水印
+        </button>
+      </div>
+
+      <!-- 文字水印选项 -->
+      <div x-show="type === 'text'" class="space-y-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">水印文字</label>
+            <input type="text" x-model="text" @input.debounce.300ms="redrawAll()" placeholder="请输入"
+              class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-brand-500 outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">字体大小: <span x-text="fontSize"></span></label>
+            <input type="range" x-model.number="fontSize" min="8" max="80" step="2" @input.debounce.100ms="redrawAll()" class="w-full accent-brand-600" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">颜色</label>
+            <input type="color" x-model="color" @input.debounce.200ms="redrawAll()" class="w-full h-[34px] px-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 cursor-pointer" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">不透明度: <span x-text="opacity"></span></label>
+            <input type="range" x-model.number="opacity" min="0.05" max="1" step="0.05" @input.debounce.100ms="redrawAll()" class="w-full accent-brand-600" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">旋转角度: <span x-text="angle"></span>°</label>
+            <input type="range" x-model.number="angle" min="-90" max="90" step="5" @input.debounce.100ms="redrawAll()" class="w-full accent-brand-600" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">间距: <span x-text="spacing"></span>px</label>
+            <input type="range" x-model.number="spacing" min="80" max="400" step="20" @input.debounce.100ms="redrawAll()" class="w-full accent-brand-600" />
+          </div>
+        </div>
+      </div>
+
+      <!-- 图片水印选项 -->
+      <div x-show="type === 'image'" class="space-y-4">
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">水印图片</label>
+            <label class="flex items-center justify-center h-[34px] px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs text-gray-500 cursor-pointer hover:border-brand-400 transition-colors">
+              <input type="file" accept="image/*" class="hidden" @change="handleWmImage($event)" />
+              <span x-text="wmImgName || '点击选择'"></span>
+            </label>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">缩放: <span x-text="scale"></span></label>
+            <input type="range" x-model.number="scale" min="0.1" max="0.6" step="0.05" @input.debounce.100ms="redrawAll()" class="w-full accent-brand-600" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">不透明度: <span x-text="opacity"></span></label>
+            <input type="range" x-model.number="opacity" min="0.05" max="1" step="0.05" @input.debounce.100ms="redrawAll()" class="w-full accent-brand-600" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">位置</label>
+          <div class="flex gap-2">
+            <button @click="position='center'; redrawAll()"
+              class="px-3 py-1.5 rounded-lg text-xs border transition-colors"
+              :class="position === 'center' ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20 text-brand-700' : 'border-gray-200 dark:border-gray-600 text-gray-500'">居中</button>
+            <button @click="position='tile'; redrawAll()"
+              class="px-3 py-1.5 rounded-lg text-xs border transition-colors"
+              :class="position === 'tile' ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20 text-brand-700' : 'border-gray-200 dark:border-gray-600 text-gray-500'">平铺</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 预览区域 -->
+    <div x-show="previews.length > 0 && !loadingPreview" x-cloak class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 mb-6">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <h3 class="font-semibold text-gray-800 dark:text-gray-100">
+          📑 水印预览（共 <span x-text="previews.length"></span> 页）
+        </h3>
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            <span>🔍</span>
+            <input type="range" x-model.number="thumbSize" min="1" max="10" step="1" class="w-24 accent-brand-600" />
+            <span x-text="(11 - thumbSize) + ' 列'"></span>
+          </div>
+        </div>
+      </div>
+
+      <p class="text-xs text-gray-400 dark:text-gray-500 mb-4">
+        💡 调整水印参数后预览实时更新 · 当前为 <strong x-text="type === 'text' ? '文字水印' : '图片水印'" class="text-brand-500"></strong>
+      </p>
+
+      <div class="grid gap-3" :style="'grid-template-columns: repeat(' + (11 - thumbSize) + ', 1fr);'">
+        <template x-for="(p, index) in previews" :key="p.page">
+          <div class="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700">
+            <!-- Canvas 预览 -->
+            <canvas :id="'wm-canvas-' + p.page" class="w-full h-auto"></canvas>
+            <!-- 页码 -->
+            <div class="text-center py-1 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700">
+              第 <span x-text="p.page"></span> 页
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <div x-show="error" x-cloak class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6">
+      <p class="text-sm text-red-700 dark:text-red-300" x-text="error"></p>
+    </div>
+    <div x-show="success" x-cloak class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 mb-6">
+      <p class="text-sm text-green-700 dark:text-green-300">✅ 水印添加完成！文件已自动下载</p>
+    </div>
+
+    <div x-show="processing" x-cloak class="mb-6">
+      <div class="flex items-center justify-between text-sm text-gray-500 mb-2"><span>正在处理...</span><span x-text="progress + '%'"></span></div>
+      <div class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+        <div class="progress-bar h-full bg-gradient-to-r from-lime-500 to-green-500 rounded-full" :style="{ width: progress + '%' }"></div>
+      </div>
+    </div>
+
+    <button @click="doWatermark()" :disabled="previews.length === 0 || processing"
+      class="w-full btn-primary text-white font-semibold py-3.5 rounded-xl text-base">
+      <span x-show="!processing">💧 添加水印</span>
+      <span x-show="processing" class="flex items-center justify-center gap-2">
+        <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+        处理中...
+      </span>
+    </button>
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    function watermarkApp() {
+      return {
+        files: [], processing: false, progress: 0, error: "", success: false,
+        maxSize: 50 * 1024 * 1024, previews: [], loadingPreview: false, thumbSize: 4,
+
+        // 水印参数
+        type: 'text',
+        text: '水印',
+        fontSize: 24,
+        color: '#ff0000',
+        opacity: 0.3,
+        angle: 45,
+        spacing: 150,
+        scale: 0.25,
+        position: 'center',
+        wmImgName: null,
+        wmImgEl: null,
+        wmImgFile: null,  // 保留原始文件引用
+
+        get hasFiles() { return this.files.length > 0; },
+
+        handleFileSelect(e) { this.setFile(e.target.files); e.target.value = ""; },
+        handleDrop(e) { this.dragOver = false; this.setFile(e.dataTransfer.files); },
+
+        setFile(fileList) {
+          const f = fileList[0];
+          if (!f || f.size > this.maxSize) return;
+          this.files = [f];
+          this.loadingPreview = true;
+          this.previews = [];
+          const fd = new FormData();
+          fd.append("file", f);
+          fetch("/api/preview", { method: "POST", body: fd })
+            .then(r => r.json())
+            .then(data => {
+              this.previews = data.previews;
+              this.loadingPreview = false;
+              this.$nextTick(() => this.redrawAll());
+            })
+            .catch(e => { this.error = e.message; this.loadingPreview = false; });
+        },
+
+        handleWmImage(e) {
+          const f = e.target.files[0];
+          if (!f) return;
+          this.wmImgName = f.name;
+          this.wmImgFile = f;  // 保存文件引用
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            const img = new Image();
+            img.onload = () => { this.wmImgEl = img; this.redrawAll(); };
+            img.src = ev.target.result;
+          };
+          reader.readAsDataURL(f);
+          e.target.value = "";
+        },
+
+        redrawAll() {
+          this.$nextTick(() => {
+            this.previews.forEach(p => this.drawWatermark(p));
+          });
+        },
+
+        drawWatermark(p) {
+          const canvas = document.getElementById('wm-canvas-' + p.page);
+          if (!canvas) return;
+
+          const img = new Image();
+          img.onload = () => {
+            const cw = img.width, ch = img.height;
+            canvas.width = cw;
+            canvas.height = ch;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+
+            if (this.type === 'text') {
+              ctx.save();
+              ctx.globalAlpha = this.opacity;
+              ctx.fillStyle = this.color;
+              ctx.font = `bold ${this.fontSize}px sans-serif`;
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              // 平铺旋转文字
+              for (let y = -this.spacing; y < ch + this.spacing; y += this.spacing) {
+                for (let x = -this.spacing; x < cw + this.spacing; x += this.spacing) {
+                  ctx.save();
+                  ctx.translate(x, y);
+                  ctx.rotate((this.angle * Math.PI) / 180);
+                  ctx.fillText(this.text, 0, 0);
+                  ctx.restore();
+                }
+              }
+              ctx.restore();
+            } else if (this.type === 'image' && this.wmImgEl) {
+              ctx.save();
+              ctx.globalAlpha = this.opacity;
+              const wmW = cw * this.scale;
+              const wmH = (this.wmImgEl.height / this.wmImgEl.width) * wmW;
+
+              if (this.position === 'center') {
+                const x = (cw - wmW) / 2;
+                const y = (ch - wmH) / 2;
+                ctx.drawImage(this.wmImgEl, x, y, wmW, wmH);
+              } else if (this.position === 'tile') {
+                for (let y = 0; y < ch; y += wmH * 1.5) {
+                  for (let x = 0; x < cw; x += wmW * 1.5) {
+                    ctx.drawImage(this.wmImgEl, x, y, wmW, wmH);
+                  }
+                }
+              }
+              ctx.restore();
+            }
+          };
+          img.src = p.data_url;
+        },
+
+        clearAll() {
+          this.files = []; this.previews = []; this.loadingPreview = false; this.wmImgEl = null; this.wmImgName = null;
+        },
+        clearFiles() { this.clearAll(); },
+        removeFile(i) { this.files.splice(i, 1); },
+
+        doWatermark() {
+          if (!this.hasFiles) return;
+          const formData = new FormData();
+          formData.append("file", this.files[0]);
+
+          if (this.type === 'text') {
+            formData.append("text", this.text);
+            formData.append("font_size", this.fontSize);
+            formData.append("color", this.color);
+            formData.append("opacity", this.opacity);
+            formData.append("angle", this.angle);
+            this.processRequest("/api/watermark/text", formData, "watermarked.pdf");
+          } else {
+            if (!this.wmImgFile) { this.error = "请选择水印图片"; return; }
+            formData.append("watermark_image", this.wmImgFile);
+            formData.append("opacity", this.opacity);
+            formData.append("scale", this.scale);
+            formData.append("position", this.position);
+            this.processRequest("/api/watermark/image", formData, "watermarked.pdf");
+          }
+        },
+
+        async processRequest(endpoint, formData, downloadName) {
+          this.processing = true; this.progress = 0; this.error = ""; this.success = false;
+          try {
+            await uploadAndProcess(endpoint, formData, downloadName, p => { this.progress = p; });
+            this.success = true;
+          } catch (e) { this.error = e.message; }
+          finally { this.processing = false; }
+        }
+      };
+    }
+  </script>
+</body>
+</html>

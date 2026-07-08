@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN" x-data="rotateApp()" :class="{ 'dark': localStorage.getItem('dark') === 'true' }">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>旋转页面 - 叮当猫的口袋</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="stylesheet" href="css/style.css" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { colors: { brand: { 50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a8a' } } } }
+    }
+  </script>
+  <style>
+    .rotate-0 { transform: rotate(0deg); }
+    .rotate-90 { transform: rotate(90deg); }
+    .rotate-180 { transform: rotate(180deg); }
+    .rotate-270 { transform: rotate(270deg); }
+  </style>
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
+
+  <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
+    <div class="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-2 font-bold text-lg text-brand-600 dark:text-brand-400">
+        <span>📄</span><span>PDF 工具</span>
+      </a>
+      <button @click="localStorage.setItem('dark', localStorage.getItem('dark') === 'true' ? 'false' : 'true'); location.reload()"
+        class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+      </button>
+    </div>
+  </nav>
+
+  <main class="max-w-5xl mx-auto px-6 py-10">
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 text-4xl mb-4 shadow-sm">🔄</div>
+      <h1 class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100">旋转页面</h1>
+      <p class="text-gray-500 dark:text-gray-400 mt-2">点击页面缩略图切换旋转角度，每个页面可独立设置</p>
+    </div>
+
+    <!-- 上传区域 -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 mb-6">
+      <label class="upload-zone rounded-xl p-8 text-center cursor-pointer block"
+             :class="{ 'drag-over': dragOver }"
+             @dragover.prevent="dragOver = true"
+             @dragleave.prevent="dragOver = false"
+             @drop.prevent="handleDrop($event)">
+        <input type="file" accept=".pdf" class="hidden" @change="handleFileSelect($event)" />
+        <div class="text-4xl mb-3">📁</div>
+        <p class="text-gray-600 dark:text-gray-300 font-medium">点击或拖拽上传 PDF 文件</p>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">上传后将显示所有页面的缩略图预览</p>
+      </label>
+
+      <div x-show="hasFiles" class="mt-4">
+        <div class="file-item flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+          <div class="flex items-center gap-3">
+            <span class="text-lg">📄</span>
+            <div>
+              <p class="text-sm font-medium text-gray-700 dark:text-gray-200" x-text="files[0]?.name"></p>
+              <p class="text-xs text-gray-400">
+                <span x-show="!loadingPreview">共 <span x-text="previews.length" class="font-semibold"></span> 页</span>
+                <span x-show="loadingPreview" class="text-brand-600">正在生成预览...</span>
+              </p>
+            </div>
+          </div>
+          <button @click="clearAll()" class="p-1 text-gray-400 hover:text-red-500 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div x-show="loadingPreview" x-cloak class="mt-6 text-center">
+        <div class="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-full">
+          <svg class="animate-spin w-4 h-4 text-brand-600" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+          </svg>
+          <span class="text-sm text-blue-600 dark:text-blue-400">正在渲染页面预览...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 缩略图预览 -->
+    <div x-show="previews.length > 0 && !loadingPreview" x-cloak class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 mb-6">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <h3 class="font-semibold text-gray-800 dark:text-gray-100">
+          📑 页面预览（共 <span x-text="previews.length"></span> 页）
+        </h3>
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            <span>🔍</span>
+            <input type="range" x-model.number="thumbSize" min="1" max="10" step="1" class="w-24 accent-brand-600" />
+            <span x-text="(11 - thumbSize) + ' 列'"></span>
+          </div>
+          <div class="flex gap-1.5 text-xs">
+            <button @click="selectAll()" class="px-2.5 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 transition-colors">全部 90°</button>
+            <button @click="selectNone()" class="px-2.5 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 transition-colors">全部归正</button>
+          </div>
+        </div>
+      </div>
+
+      <p class="text-xs text-gray-400 dark:text-gray-500 mb-4">
+        💡 点击缩略图切换旋转角度（0°→90°→180°→270°）· 已设置 <strong x-text="rotatedCount" class="text-emerald-500"></strong> 页旋转
+      </p>
+
+      <div class="grid gap-3" :style="'grid-template-columns: repeat(' + (11 - thumbSize) + ', 1fr);'">
+        <template x-for="p in previews" :key="p.page">
+          <div class="cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200"
+               :class="getAngle(p.page) > 0 ? 'border-emerald-500 ring-2 ring-emerald-200 shadow-lg' : 'border-gray-200 dark:border-gray-600 hover:border-brand-400'"
+               @click="toggleAngle(p.page)">
+            <div class="flex items-center justify-center bg-gray-100 dark:bg-gray-700" :class="'rotate-' + getAngle(p.page)">
+              <img :src="p.data_url" :alt="'Page ' + p.page" class="w-full h-auto object-cover" />
+            </div>
+            <div class="text-center py-1.5 text-xs font-semibold"
+                 :class="getAngle(p.page) > 0 ? 'bg-emerald-500 text-white' : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300'">
+              <span x-show="getAngle(p.page) === 0">第 <span x-text="p.page"></span> 页</span>
+              <span x-show="getAngle(p.page) > 0">↻ <span x-text="getAngle(p.page)"></span>° 第 <span x-text="p.page"></span> 页</span>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <div x-show="error" x-cloak class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6">
+      <p class="text-sm text-red-700 dark:text-red-300" x-text="error"></p>
+    </div>
+    <div x-show="success" x-cloak class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 mb-6">
+      <p class="text-sm text-green-700 dark:text-green-300">✅ 旋转完成！文件已自动下载</p>
+    </div>
+
+    <div x-show="processing" x-cloak class="mb-6">
+      <div class="flex items-center justify-between text-sm text-gray-500 mb-2"><span>正在旋转...</span><span x-text="progress + '%'"></span></div>
+      <div class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+        <div class="progress-bar h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full" :style="{ width: progress + '%' }"></div>
+      </div>
+    </div>
+
+    <button @click="doRotate()" :disabled="!hasFiles || processing"
+      class="w-full btn-primary text-white font-semibold py-3.5 rounded-xl text-base">
+      <span x-show="!processing">🔄 旋转选中的页面</span>
+      <span x-show="processing" class="flex items-center justify-center gap-2">
+        <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+        处理中...
+      </span>
+    </button>
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    function rotateApp() {
+      return {
+        files: [], processing: false, progress: 0, error: "", success: false,
+        multiFile: false, accept: ".pdf", maxSize: 50 * 1024 * 1024, dragOver: false,
+        previews: [], pageAngles: {}, loadingPreview: false, thumbSize: 6,
+
+        get hasFiles() { return this.files.length > 0; },
+        get totalSize() { return this.files.reduce((s, f) => s + f.size, 0); },
+        get rotatedCount() { return Object.values(this.pageAngles).filter(a => a > 0).length; },
+
+        handleFileSelect(e) { this.setFile(e.target.files); e.target.value = ""; },
+        handleDrop(e) { this.dragOver = false; this.setFile(e.dataTransfer.files); },
+
+        setFile(fileList) {
+          const f = fileList[0];
+          if (f && f.size <= this.maxSize) { this.files = [f]; }
+
+          this.loadingPreview = true;
+          this.previews = [];
+          this.pageAngles = {};
+          const fd = new FormData();
+          fd.append("file", f);
+          fetch("/api/preview", { method: "POST", body: fd })
+            .then(r => r.json())
+            .then(data => {
+              this.previews = data.previews;
+              // 初始化所有页面角度为 0
+              data.previews.forEach(p => { this.pageAngles[p.page] = 0; });
+              this.loadingPreview = false;
+            })
+            .catch(e => { this.error = e.message; this.loadingPreview = false; });
+        },
+
+        getAngle(pageNum) {
+          return this.pageAngles[pageNum] || 0;
+        },
+
+        toggleAngle(pageNum) {
+          // 0° → 90° → 180° → 270° → 0°
+          const current = this.pageAngles[pageNum] || 0;
+          this.pageAngles[pageNum] = (current + 90) % 360;
+        },
+
+        selectAll() {
+          this.previews.forEach(p => { this.pageAngles[p.page] = 90; });
+        },
+
+        selectNone() {
+          this.previews.forEach(p => { this.pageAngles[p.page] = 0; });
+        },
+
+        clearAll() {
+          this.files = []; this.previews = []; this.pageAngles = {}; this.loadingPreview = false;
+        },
+        clearFiles() { this.clearAll(); },
+        removeFile(i) { this.files.splice(i, 1); },
+
+        doRotate() {
+          const rotated = this.previews.filter(p => this.getAngle(p.page) > 0);
+          if (rotated.length === 0) { this.error = "请先点击缩略图设置旋转角度"; return; }
+
+          // 按角度分组发送请求
+          const groups = {};
+          rotated.forEach(p => {
+            const a = this.getAngle(p.page);
+            if (!groups[a]) groups[a] = [];
+            groups[a].push(p.page);
+          });
+
+          // 如果有多种角度，按最常用的方式处理
+          // 简化：按每个页面的角度分别调用 API
+          const angles = Object.keys(groups);
+          if (angles.length === 1) {
+            // 所有选中页面同一角度，一次请求
+            const fd = new FormData();
+            fd.append("file", this.files[0]);
+            fd.append("angle", angles[0]);
+            fd.append("pages", groups[angles[0]].sort((a, b) => a - b).join(","));
+            this.processRequest("/api/rotate", fd, "rotated.pdf");
+          } else {
+            // 不同角度，分多次请求——这里简化：只处理第一个组
+            this.error = "暂不支持混合角度，请将所有页面设为同一角度后重试";
+            return;
+          }
+        },
+
+        async processRequest(endpoint, formData, downloadName) {
+          this.processing = true; this.progress = 0; this.error = ""; this.success = false;
+          try {
+            await uploadAndProcess(endpoint, formData, downloadName, p => { this.progress = p; });
+            this.success = true;
+          } catch (e) { this.error = e.message; }
+          finally { this.processing = false; }
+        }
+      };
+    }
+  </script>
+</body>
+</html>
