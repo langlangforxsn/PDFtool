@@ -4,14 +4,11 @@
 
 // 后端 API 地址（自动判断：本地 / Render / 环境变量）
 const API_BASE = (() => {
-  // 如果有环境变量，优先使用
-  if (typeof PDF_API_URL !== 'undefined') return PDF_API_URL;
   // 本地开发环境（Flask 同时托管前后端）
   const host = window.location.hostname;
   if (host === 'localhost' || host === '127.0.0.1') return '';
-  // 生产环境：前端部署在 Vercel，后端在 Render
-  // 需要用户部署后替换为实际的 Render 地址
-  return 'https://pdf-tool-api.onrender.com';  // TODO: 替换为实际 Render 地址
+  // 生产环境：前端和后端同一服务器
+  return '';
 })();
 
 /**
