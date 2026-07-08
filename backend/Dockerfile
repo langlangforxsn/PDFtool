@@ -15,4 +15,4 @@ COPY . .
 
 RUN mkdir -p /tmp/pdf_tool_uploads
 
-CMD ["gunicorn", "--bind", "0.0.0.0:10000", "--timeout", "120", "app:app"]
+CMD exec gunicorn --bind "0.0.0.0:${PORT:-10000}" --timeout 120 app:app
